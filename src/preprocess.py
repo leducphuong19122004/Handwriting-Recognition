@@ -48,7 +48,7 @@ class Preprocess:
             self.image = cv2.resize(self.image, (new_w, new_h), interpolation=cv2.INTER_AREA)
             self.add_padding()
     
-    def preprocess(self, image_path, target_size: tuple=(32,128)):
+    def preprocess(self, image_path, target_size: tuple=(64,128)):
         self.image = cv2.imread(image_path)
 
         self.img_h, self.img_w = self.image.shape[:2]
@@ -64,7 +64,7 @@ class Preprocess:
         self.image = self.image.astype(np.float32)
         self.image = np.expand_dims(self.image, axis=2)
         self.image /= 255 #  # Normalize imself.image
-        return self.image # images have shape (32, 128, 1)
+        return self.image # images have shape (64, 128, 1)
     
     def encode_gttext_to_label(self, gt_text):
         # "more" -> [65 67 70 57]  

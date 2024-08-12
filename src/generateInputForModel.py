@@ -4,7 +4,7 @@ from preprocess import Preprocess
 import numpy as np
 
 class InputGenerator():
-    def __init__(self, data_set, img_w=128, img_h=32, batch_size=64, input_length=30, max_text_length=19):
+    def __init__(self, data_set, img_w=128, img_h=64, batch_size=64, input_length=30, max_text_length=19):
         self.img_w = img_w
         self.img_h = img_h
         self.batch_size = batch_size

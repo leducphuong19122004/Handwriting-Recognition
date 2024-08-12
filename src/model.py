@@ -18,37 +18,45 @@ class CNN_and_RNN:
     def __init__(self) -> None:
         # set up cnn layers
         # input wit shape of height=32 and width=128
-        self.inputs = Input(shape=(32,128,1), name="image")
+        self.inputs = Input(shape=(64,128,1), name="image")
         
         # convolution layer with kernel size (3,3)
-        conv_1 = Conv2D(64, (3,3), activation = 'relu', padding='same')(self.inputs)
-        # poolig layer with kernel size (2,2)
-        pool_1 = MaxPool2D(pool_size=(2, 2), strides=2)(conv_1)
+        layers = Conv2D(64, (3,3), padding='same', kernel_initializer='he_normal')(self.inputs)
+        layers = BatchNormalization()(layers)
+        layers = Activation('relu')(layers)
+        layers = MaxPool2D(pool_size=(2, 2))(layers)
         
-        conv_2 = Conv2D(128, (3,3), activation = 'relu', padding='same')(pool_1)
-        pool_2 = MaxPool2D(pool_size=(2, 2), strides=2)(conv_2)
+        layers = Conv2D(128, (3,3), padding='same', kernel_initializer='he_normal')(layers)
+        layers = BatchNormalization()(layers)
+        layers = Activation('relu')(layers)
+        layers = MaxPool2D(pool_size=(2, 2))(layers)
         
-        conv_3 = Conv2D(256, (3,3), activation = 'relu', padding='same')(pool_2)
-        
-        conv_4 = Conv2D(256, (3,3), activation = 'relu', padding='same')(conv_3)
-        # poolig layer with kernel size (2,1)
-        pool_4 = MaxPool2D(pool_size=(2, 1))(conv_4)
-        
-        conv_5 = Conv2D(512, (3,3), activation = 'relu', padding='same')(pool_4)
-        # Batch normalization layer
-        batch_norm_5 = BatchNormalization()(conv_5)
-        
-        conv_6 = Conv2D(512, (3,3), activation = 'relu', padding='same')(batch_norm_5)
-        batch_norm_6 = BatchNormalization()(conv_6)
-        pool_6 = MaxPool2D(pool_size=(2, 1))(batch_norm_6)
-        
-        conv_7 = Conv2D(512, (2,2), activation = 'relu')(pool_6)
-        
-        squeezed = Lambda(lambda x: tf.squeeze(x, 1), output_shape=(31, 512))(conv_7)
+        layers = Conv2D(256, (3, 3), padding='same', kernel_initializer='he_normal')(layers)
+        layers = BatchNormalization()(layers)
+        layers = Activation('relu')(layers)
+        layers = Conv2D(256, (3, 3), padding='same', kernel_initializer='he_normal')(layers)
+        layers = BatchNormalization()(layers)
+        layers = Activation('relu')(layers)
+        layers = MaxPool2D(pool_size=(1, 2))(layers)  
+
+        layers = Conv2D(512, (3, 3), padding='same', kernel_initializer='he_normal')(layers)
+        layers = BatchNormalization()(layers)
+        layers = Activation('relu')(layers)
+        layers = Conv2D(512, (3, 3), padding='same')(layers)
+        layers = BatchNormalization()(layers)
+        layers = Activation('relu')(layers)
+        layers = MaxPool2D(pool_size=(1, 2))(layers)
+
+        layers = Conv2D(512, (2, 2), padding='same', kernel_initializer='he_normal')(layers)
+        layers = BatchNormalization()(layers)
+        layers = Activation('relu')(layers)
+
+        # CNN to RNN
+        layers = Reshape(target_shape=((32, 2048)))(layers)
         
         # bidirectional LSTM layers with units=128
-        blstm_1 = Bidirectional(LSTM(128, return_sequences=True, dropout = 0.2))(squeezed)
-        blstm_2 = Bidirectional(LSTM(128, return_sequences=True, dropout = 0.2))(blstm_1)
+        blstm_1 = Bidirectional(LSTM(256, return_sequences=True, dropout = 0.2))(layers)
+        blstm_2 = Bidirectional(LSTM(256, return_sequences=True, dropout = 0.2))(blstm_1)
         
         self.outputs = Dense(len(Preprocess().char_list)+1, activation = 'softmax')(blstm_2) # len(Preprocess().char_list)+1 = 80
         # model to be used at test time
