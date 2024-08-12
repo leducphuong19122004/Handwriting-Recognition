@@ -14,17 +14,14 @@ import numpy as np
 from loadDataset import DataLoader
 from preprocess import Preprocess
 
-class ModelRCNN:
+class CNN_and_RNN:
     def __init__(self) -> None:
-        self.train(self.setup_RCNN_model())
-
-    def setup_RCNN_model(self):
         # set up cnn layers
         # input wit shape of height=32 and width=128
-        inputs = Input(shape=(32,128,1), name="image")
+        self.inputs = Input(shape=(32,128,1), name="image")
         
         # convolution layer with kernel size (3,3)
-        conv_1 = Conv2D(64, (3,3), activation = 'relu', padding='same')(inputs)
+        conv_1 = Conv2D(64, (3,3), activation = 'relu', padding='same')(self.inputs)
         # poolig layer with kernel size (2,2)
         pool_1 = MaxPool2D(pool_size=(2, 2), strides=2)(conv_1)
         
@@ -53,15 +50,16 @@ class ModelRCNN:
         blstm_1 = Bidirectional(LSTM(128, return_sequences=True, dropout = 0.2))(squeezed)
         blstm_2 = Bidirectional(LSTM(128, return_sequences=True, dropout = 0.2))(blstm_1)
         
-        outputs = Dense(len(Preprocess().char_list)+1, activation = 'softmax')(blstm_2) # len(Preprocess().char_list)+1 = 80
+        self.outputs = Dense(len(Preprocess().char_list)+1, activation = 'softmax')(blstm_2) # len(Preprocess().char_list)+1 = 80
         # model to be used at test time
-        act_model = Model(inputs, outputs)
-        # act_model.summary()
+        self.act_model = Model(self.inputs, self.outputs)
 
-        # ctc definition part   
-        labels = Input(name='the_labels', shape=[19], dtype='float32') # 19 = max_text_length
-        input_length = Input(name='input_length', shape=[1], dtype='int64')
-        label_length = Input(name='label_length', shape=[1], dtype='int64')
+class CTC:
+    def __init__(self, inputs, outputs) -> None:
+         # ctc definition part   
+        self.labels = Input(name='the_labels', shape=[19], dtype='float32') # 19 = max_text_length
+        self.input_length = Input(name='input_length', shape=[1], dtype='int64')
+        self.label_length = Input(name='label_length', shape=[1], dtype='int64')
 
         # A CTC loss function requires four arguments to compute the loss, predicted outputs, 
         # ground truth labels, input sequence length to LSTM and ground truth label length
@@ -70,11 +68,11 @@ class ModelRCNN:
             return self.ctc_batch_cost(labels, y_pred, input_length, label_length) 
         
         # The Lambda layer is normally used to implement a custom function, in this case is custom loss function
-        loss_out = Lambda(ctc_lambda_func, output_shape=(1,), name='ctc')([outputs, labels, input_length, label_length])
+        loss_out = Lambda(ctc_lambda_func, output_shape=(1,), name='ctc')([outputs, self.labels, self.input_length, self.label_length])
         #model to be used at training time
-        model = Model(inputs=[inputs, labels, input_length, label_length], outputs=loss_out)
-        return model
-    
+        self.model = Model(inputs=[inputs, self.labels, self.input_length, self.label_length], outputs=loss_out)
+        
+
     def ctc_batch_cost(self, y_true, y_pred, input_length, label_length):
         label_length = ops.cast(ops.squeeze(label_length, axis=-1), dtype="int32")
         input_length = ops.cast(ops.squeeze(input_length, axis=-1), dtype="int32")
@@ -131,11 +129,17 @@ class ModelRCNN:
             ops.cast(label_shape, dtype="int64")
         )
 
-    def train(self, model: Model):
+class CRNN_CTCModel:
+    def __init__(self) -> None:
+        cnn_rnn = CNN_and_RNN()
+        ctc = CTC(cnn_rnn.inputs, cnn_rnn.outputs)
+        self.model = ctc.model
+    
+    def train(self):
         # Now that the loss function is implemented, the second part of the code bypasses the Keras built-in loss functions
         # by returning the prediction tensor y_pred as is. 
-        model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer='adam')
-        filepath = "RCNN_model.keras"
+        self.model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer='adam')
+        filepath = "CRNN_model.keras"
         # ModelCheckpoint callback is used in conjunction with training using model.fit() to save a model or weights
         # so the model or weights can be loaded later to continue the training from the state saved.
         model_checkpoint_callback = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
@@ -151,9 +155,4 @@ class ModelRCNN:
         validation_data.build_data()
         val_x, val_y = next(validation_data.next_batch())
 
-        model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=30, verbose=1, callbacks=[model_checkpoint_callback])
-
-
-        
-
-
+        self.model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=30, verbose=1, callbacks=[model_checkpoint_callback])
