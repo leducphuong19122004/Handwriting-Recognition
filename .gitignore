@@ -1,0 +1,3 @@
+iam_words/words/*
+*.keras
+__pycache__
