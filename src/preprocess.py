@@ -14,8 +14,10 @@ class Preprocess:
 
 
     def add_padding(self):
-        h1, h2 = int(self.target_h - self.img_h), int(self.target_h - self.img_h) + self.img_h
-        w1, w2 = int(self.target_w - self.img_w), int(self.target_w - self.img_w) + self.img_w
+        padd_h = int((self.target_h - self.img_h) / 2)
+        padd_w = int((self.target_w - self.img_w) / 2)
+        h1, h2 = padd_h, int(padd_h + self.img_h)
+        w1, w2 = padd_w, int(padd_w + self.img_w)
         img_pad = np.ones([self.target_h, self.target_w, 3]) * 255
         img_pad[h1:h2, w1:w2, :] = self.image
         self.image = img_pad
@@ -50,20 +52,17 @@ class Preprocess:
     
     def preprocess(self, image_path, target_size: tuple=(64,128)):
         self.image = cv2.imread(image_path)
-
         self.img_h, self.img_w = self.image.shape[:2]
         self.target_h = target_size[0]
         self.target_w = target_size[1]
-
         self.fix_size()
         """ Pre-processing image for predicting """
         self.image = np.clip(self.image, 0, 255) #  is used to Clip (limit) the values in an array.
         self.image = np.uint8(self.image)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-
         self.image = self.image.astype(np.float32)
         self.image = np.expand_dims(self.image, axis=2)
-        self.image /= 255 #  # Normalize imself.image
+        self.image /= 255 # Normalize imself.image
         return self.image # images have shape (64, 128, 1)
     
     def encode_gttext_to_label(self, gt_text):

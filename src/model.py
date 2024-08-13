@@ -1,14 +1,16 @@
-from keras.api.layers import Dense, LSTM, Reshape, Input, Conv1D, Conv2D, MaxPool2D, Lambda, Add, Activation, Bidirectional
+from keras.api.layers import Dense, LSTM, Reshape, Input, Conv1D, Conv2D, MaxPool2D, Lambda, Add, Activation, Bidirectional, Dropout
 from keras.api.layers import BatchNormalization
 from keras.api.models import Model
+from keras.api.optimizers import Adam
 from keras.api.activations import relu, sigmoid, softmax
 import tensorflow as tf
 import keras.api.ops as ops
 from keras.api.callbacks import ModelCheckpoint
+import keras.api.regularizers as regularizers
 from generateInputForModel import InputGenerator
 import keras
 import math
-
+import matplotlib.pyplot as plt
 import numpy as np
 
 from loadDataset import DataLoader
@@ -18,7 +20,7 @@ class CNN_and_RNN:
     def __init__(self) -> None:
         # set up cnn layers
         # input wit shape of height=32 and width=128
-        self.inputs = Input(shape=(64,128,1), name="image")
+        self.inputs = Input(shape=(64,128,1), name="image", dtype="float32")
         
         # convolution layer with kernel size (3,3)
         layers = Conv2D(64, (3,3), padding='same', kernel_initializer='he_normal')(self.inputs)
@@ -53,12 +55,15 @@ class CNN_and_RNN:
 
         # CNN to RNN
         layers = Reshape(target_shape=((32, 2048)))(layers)
+        layers = Dense(64, activation='relu', kernel_initializer='he_normal')(layers)
+        layers = Dropout(0.2)(layers)
         
         # bidirectional LSTM layers with units=128
-        blstm_1 = Bidirectional(LSTM(256, return_sequences=True, dropout = 0.2))(layers)
-        blstm_2 = Bidirectional(LSTM(256, return_sequences=True, dropout = 0.2))(blstm_1)
+        layers = Bidirectional(LSTM(128, return_sequences=True, dropout=0.2))(layers)
+        layers = Bidirectional(LSTM(64, return_sequences=True, dropout=0.2))(layers)
+        layers = BatchNormalization()(layers)
         
-        self.outputs = Dense(len(Preprocess().char_list)+1, activation = 'softmax')(blstm_2) # len(Preprocess().char_list)+1 = 80
+        self.outputs = Dense(len(Preprocess().char_list)+1, activation = 'softmax')(layers) # len(Preprocess().char_list)+1 = 80
         # model to be used at test time
         self.act_model = Model(self.inputs, self.outputs)
 
@@ -72,7 +77,8 @@ class CTC:
         # A CTC loss function requires four arguments to compute the loss, predicted outputs, 
         # ground truth labels, input sequence length to LSTM and ground truth label length
         def ctc_lambda_func(args):
-            y_pred, labels, input_length, label_length = args # y_pred - outputs    
+            y_pred, labels, input_length, label_length = args # y_pred - outputs   
+            y_pred = y_pred[:, 2:, :] 
             return self.ctc_batch_cost(labels, y_pred, input_length, label_length) 
         
         # The Lambda layer is normally used to implement a custom function, in this case is custom loss function
@@ -146,7 +152,8 @@ class CRNN_CTCModel:
     def train(self):
         # Now that the loss function is implemented, the second part of the code bypasses the Keras built-in loss functions
         # by returning the prediction tensor y_pred as is. 
-        self.model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer='adam')
+        opt = Adam(learning_rate=0.0001)
+        self.model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=opt)
         filepath = "CRNN_model.keras"
         # ModelCheckpoint callback is used in conjunction with training using model.fit() to save a model or weights
         # so the model or weights can be loaded later to continue the training from the state saved.
@@ -163,4 +170,11 @@ class CRNN_CTCModel:
         validation_data.build_data()
         val_x, val_y = next(validation_data.next_batch())
 
-        self.model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=30, verbose=1, callbacks=[model_checkpoint_callback])
+        history = self.model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=40, verbose=1, callbacks=[model_checkpoint_callback])
+        plt.plot(history.history["loss"])
+        plt.plot(history.history["val_loss"])
+        plt.title("model loss")
+        plt.ylabel("loss")
+        plt.xlabel("epoch")
+        plt.legend(['train', 'val'], loc='upper left')
+        plt.show()

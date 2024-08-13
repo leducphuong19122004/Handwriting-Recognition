@@ -51,7 +51,8 @@ def get_value(x):
         return x.numpy()
 
 def main():
-    # CRNN_CTCModel().train() 
+    CRNN_CTCModel().train() 
+
     # We can not use our training model because it also requires labels as input and at test time
     # we can not have labels. So to test the model we will use ” act_model ” that we have created earlier which takes only one input: test images.
     act_model = CNN_and_RNN().act_model
@@ -66,34 +67,36 @@ def main():
         # create list of image
         img_path = dir_path + "\\" + img_filename
         img = Preprocess().preprocess(img_path)
+        # print("==========")
+        # print(img)
         test_img.append(img)
         # create list of ground truth text
         gt_text.append(img_filename.split('.')[0])
     test_img = np.array(test_img)
     # prediction outputs on test image
     prediction = act_model.predict(test_img) 
-    print(prediction.shape)
     # use CTC decoder
     out = get_value(ctc_decode(prediction, input_length=np.ones(prediction.shape[0]) * prediction.shape[1], greedy=True)[0][0])
     # see the results
+    text_prediction = []
     i = 0
     for x in out:
-        print("original_text =  ", gt_text[i])
-        print("predicted text = ", end = '')
+        char = []
         for p in x:  
-            if int(p) != -1 and int(p) < 79:
-                print(Preprocess().char_list[int(p)], end = '')       
-        print('\n')
+            if int(p) != -1:
+                char.append(Preprocess().char_list[int(p)]) 
+        text = " ".join(char)  
+        text_prediction.append(text)  
         i+=1
-    # show image and ground truth text
-    # train_data_fig, ax = plt.subplots(2, 4, figsize=(15, 10))
-    # train_data_fig.suptitle('Training data', weight='bold', size=18)
-    # for i, img in enumerate(test_img):
-    #     text = gt_text[i]
-    #     ax[i // 4, i % 4].imshow(img[:, :, 0], cmap="gray")
-    #     ax[i // 4, i % 4].set_title(text)
-    #     ax[i // 4, i % 4].axis("off")
-    # plt.show()
+    # show image and text prediction
+    train_data_fig, ax = plt.subplots(2, 4, figsize=(15, 10))
+    train_data_fig.suptitle('Training data', weight='bold', size=18)
+    for i, img in enumerate(test_img):
+        text = text_prediction[i]
+        ax[i // 4, i % 4].imshow(img[:, :, 0], cmap="gray")
+        ax[i // 4, i % 4].set_title(text)
+        ax[i // 4, i % 4].axis("off")
+    plt.show()
 
 if __name__ == "__main__":
     main()
