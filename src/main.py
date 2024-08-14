@@ -51,7 +51,7 @@ def get_value(x):
         return x.numpy()
 
 def main():
-    CRNN_CTCModel().train() 
+    CRNN_CTCModel().train() # master
 
     # We can not use our training model because it also requires labels as input and at test time
     # we can not have labels. So to test the model we will use ” act_model ” that we have created earlier which takes only one input: test images.
