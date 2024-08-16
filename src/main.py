@@ -57,7 +57,7 @@ def main():
     # we can not have labels. So to test the model we will use ” act_model ” that we have created earlier which takes only one input: test images.
     act_model = CNN_and_RNN().act_model
     # act_model.summary()
-    act_model.load_weights('CRNN_model.keras')
+    act_model.load_weights('CRNN_model.weights.h5')
 
     # # load and preprocess test images
     dir_path = "D:\Handwritten Extraction Project\\test_data"

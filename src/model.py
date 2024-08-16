@@ -5,7 +5,7 @@ from keras.api.optimizers import Adam
 from keras.api.activations import relu, sigmoid, softmax
 import tensorflow as tf
 import keras.api.ops as ops
-from keras.api.callbacks import ModelCheckpoint
+from keras.api.callbacks import ModelCheckpoint, EarlyStopping
 import keras.api.regularizers as regularizers
 from generateInputForModel import InputGenerator
 import keras
@@ -154,10 +154,11 @@ class CRNN_CTCModel:
         # by returning the prediction tensor y_pred as is. 
         opt = Adam(learning_rate=0.0001)
         self.model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=opt)
-        filepath = "CRNN_model.keras"
+        filepath = "CRNN_model.weights.h5"
         # ModelCheckpoint callback is used in conjunction with training using model.fit() to save a model or weights
         # so the model or weights can be loaded later to continue the training from the state saved.
-        model_checkpoint_callback = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
+        model_checkpoint_callback = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto', save_weights_only=True)
+        early_stopping = EarlyStopping(patience=8)
 
         # Load train data set and validation data set
         data_loader = DataLoader()
@@ -170,7 +171,7 @@ class CRNN_CTCModel:
         validation_data.build_data()
         val_x, val_y = next(validation_data.next_batch())
 
-        history = self.model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=40, verbose=1, callbacks=[model_checkpoint_callback])
+        history = self.model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=40, verbose=1, callbacks=[model_checkpoint_callback, early_stopping])
         plt.plot(history.history["loss"])
         plt.plot(history.history["val_loss"])
         plt.title("model loss")
