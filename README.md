@@ -1,4 +1,6 @@
 # Handwriting recognition 
+> [!WARNING]  
+> This project is meeting a overfit problem
 This is a project that was developed to recognize handwriting by using deep learning. In detail, I trained a CRNN model using "iam handwriting word" database. 
 ## CRNN Model
 For more details you can visit this [paper](https://arxiv.org/pdf/1507.05717)
