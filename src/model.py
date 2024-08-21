@@ -1,12 +1,10 @@
-from keras.api.layers import Dense, LSTM, Reshape, Input, Conv1D, Conv2D, MaxPool2D, Lambda, Add, Activation, Bidirectional, Dropout
+from keras.api.layers import Dense, LSTM, Reshape, Input, Conv2D, MaxPool2D, Lambda, Activation, Bidirectional, Dropout
 from keras.api.layers import BatchNormalization
 from keras.api.models import Model
 from keras.api.optimizers import Adam
-from keras.api.activations import relu, sigmoid, softmax
 import tensorflow as tf
 import keras.api.ops as ops
 from keras.api.callbacks import ModelCheckpoint, EarlyStopping
-import keras.api.regularizers as regularizers
 from generateInputForModel import InputGenerator
 import keras
 import math
@@ -19,8 +17,8 @@ from preprocess import Preprocess
 class CNN_and_RNN:
     def __init__(self) -> None:
         # set up cnn layers
-        # input wit shape of height=32 and width=128
-        self.inputs = Input(shape=(64,128,1), name="image", dtype="float32")
+        # input wit shape of height=64 and width=128
+        self.inputs = Input(shape=(128,64,1), name="image", dtype="float32")
         
         # convolution layer with kernel size (3,3)
         layers = Conv2D(64, (3,3), padding='same', kernel_initializer='he_normal')(self.inputs)
@@ -56,14 +54,14 @@ class CNN_and_RNN:
         # CNN to RNN
         layers = Reshape(target_shape=((32, 2048)))(layers)
         layers = Dense(64, activation='relu', kernel_initializer='he_normal')(layers)
-        layers = Dropout(0.2)(layers)
+        # layers = Dropout(0.2)(layers)
         
-        # bidirectional LSTM layers with units=128
-        layers = Bidirectional(LSTM(128, return_sequences=True, dropout=0.2))(layers)
-        layers = Bidirectional(LSTM(64, return_sequences=True, dropout=0.2))(layers)
+        # bidirectional LSTM layers with units=256
+        layers = Bidirectional(LSTM(256, return_sequences=True))(layers)
+        layers = Bidirectional(LSTM(256, return_sequences=True))(layers)
         layers = BatchNormalization()(layers)
         
-        self.outputs = Dense(len(Preprocess().char_list)+1, activation = 'softmax')(layers) # len(Preprocess().char_list)+1 = 80
+        self.outputs = Dense(len(Preprocess().char_list)+1, activation='softmax')(layers) # len(Preprocess().char_list)+1 = 80
         # model to be used at test time
         self.act_model = Model(self.inputs, self.outputs)
 
@@ -152,13 +150,13 @@ class CRNN_CTCModel:
     def train(self):
         # Now that the loss function is implemented, the second part of the code bypasses the Keras built-in loss functions
         # by returning the prediction tensor y_pred as is. 
-        opt = Adam(learning_rate=0.0001)
+        opt = Adam(learning_rate=0.001)
         self.model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=opt)
         filepath = "CRNN_model.weights.h5"
         # ModelCheckpoint callback is used in conjunction with training using model.fit() to save a model or weights
         # so the model or weights can be loaded later to continue the training from the state saved.
         model_checkpoint_callback = ModelCheckpoint(filepath=filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto', save_weights_only=True)
-        early_stopping = EarlyStopping(patience=8)
+        early_stopping = EarlyStopping(patience=10, mode="min", restore_best_weights=True)
 
         # Load train data set and validation data set
         data_loader = DataLoader()
@@ -171,11 +169,11 @@ class CRNN_CTCModel:
         validation_data.build_data()
         val_x, val_y = next(validation_data.next_batch())
 
-        history = self.model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=40, verbose=1, callbacks=[model_checkpoint_callback, early_stopping])
+        history = self.model.fit(x=train_x, y=train_y, validation_data=(val_x, val_y), steps_per_epoch=math.ceil(train_data.n/train_data.batch_size), validation_steps=math.ceil(validation_data.n/validation_data.batch_size), epochs=30, verbose=1, callbacks=[model_checkpoint_callback, early_stopping])
         plt.plot(history.history["loss"])
         plt.plot(history.history["val_loss"])
         plt.title("model loss")
         plt.ylabel("loss")
         plt.xlabel("epoch")
         plt.legend(['train', 'val'], loc='upper left')
-        plt.show()
+        plt.show()  

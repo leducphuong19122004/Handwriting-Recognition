@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import tensorflow as tf
 
 class Preprocess:  
     char_list = [' ', '!', '"', '#', '&', "'", '(', ')', '*', '+', ',', '-', '.', '/',
@@ -63,7 +64,10 @@ class Preprocess:
         self.image = self.image.astype(np.float32)
         self.image = np.expand_dims(self.image, axis=2)
         self.image /= 255 # Normalize imself.image
-        return self.image # images have shape (64, 128, 1)
+        # transpose image from (64,128,1) to (128, 64, 1)
+        self.image = tf.transpose(self.image, perm=[1, 0, 2]) 
+        self.image = tf.image.flip_left_right(self.image) 
+        return self.image # images have shape (width=128, height=64, channel=1)
     
     def encode_gttext_to_label(self, gt_text):
         # "more" -> [65 67 70 57]  

@@ -9,6 +9,8 @@ import os
 import keras.api.ops as ops
 import tensorflow as tf
 import keras.api.backend as backend
+import keras.api.models as models
+
 
 
 def ctc_decode(y_pred, input_length, greedy=True, beam_width=100, top_paths=1):
@@ -51,15 +53,14 @@ def get_value(x):
         return x.numpy()
 
 def main():
-    CRNN_CTCModel().train() # master
-
+    CRNN_CTCModel().train() 
     # We can not use our training model because it also requires labels as input and at test time
     # we can not have labels. So to test the model we will use ” act_model ” that we have created earlier which takes only one input: test images.
     act_model = CNN_and_RNN().act_model
     # act_model.summary()
     act_model.load_weights('CRNN_model.weights.h5')
 
-    # # load and preprocess test images
+    # load and preprocess test images
     dir_path = "D:\Handwritten Extraction Project\\test_data"
     test_img = []
     gt_text = []
@@ -67,8 +68,6 @@ def main():
         # create list of image
         img_path = dir_path + "\\" + img_filename
         img = Preprocess().preprocess(img_path)
-        # print("==========")
-        # print(img)
         test_img.append(img)
         # create list of ground truth text
         gt_text.append(img_filename.split('.')[0])

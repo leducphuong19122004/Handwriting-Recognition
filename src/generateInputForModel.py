@@ -30,12 +30,12 @@ class InputGenerator():
         self.current_index += 1
         if self.current_index >= self.n:
             self.current_index = 0
-            random.shuffle(self.indexes) # shuffle data set 
+            random.shuffle(self.indexes) # shuffle data set is a way to avoid overfit problem
         return self.images_and_labels[self.indexes[self.current_index]]
     
     def next_batch(self):
         while True:
-            X_data = np.ones([self.batch_size, self.img_h, self.img_w, 1])
+            X_data = np.ones([self.batch_size, self.img_w, self.img_h, 1])
             Y_data = np.zeros([self.batch_size, self.max_text_length])
             input_length = np.ones((self.batch_size, 1)) * self.input_length
             label_length = np.zeros((self.batch_size, 1))
