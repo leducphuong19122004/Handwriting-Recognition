@@ -1,9 +1,10 @@
 # Handwriting recognition 
 > [!WARNING]  
-> This project is meeting a overfit problem
+> This project is meeting an overfit problem
+
 This is a project that was developed to recognize handwriting by using deep learning. In detail, I trained a CRNN model using "iam handwriting word" database. 
 ## CRNN Model
-For more details you can visit this [paper](https://arxiv.org/pdf/1507.05717)
+For more details, you can visit this [paper](https://arxiv.org/pdf/1507.05717)
 | Type                   | Configurations                            |
 |------------------------|-------------------------------------------|
 | Transcription          | -                                         |
@@ -28,8 +29,8 @@ For more details you can visit this [paper](https://arxiv.org/pdf/1507.05717)
 You can download IAM dataset from this [link](https://www.kaggle.com/datasets/nibinv23/iam-handwriting-word-database)
 ## Steps
 This project can be divided into 4 steps:
-1. Load image dataset from iam_words/words folder and coresponding lable from words.txt
+1. Load the image dataset from the iam_words/words folder and the corresponding label from words.txt
 2. Preprocess image (padding, resize, cvt color,...) and label (padding)
-3. Convert preprocessed image and label to model's input format
-4. Build model and train it with given inputs
-5. Load test image from "test_data" folder and make prediction for those image and show result
+3. Convert the preprocessed image and label to the model's input format
+4. Build a CRNN model and train it with the given inputs
+5. Load the test image from the "test_data" folder and then make predictions for those images and show the result
